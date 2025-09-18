@@ -40,6 +40,9 @@ const state = {
 
 const elements = {};
 
+let requestCounter = 0;
+let latestRequestId = 0;
+
 const formatError = (message) => `Oops! ${message}`;
 
 const buildGeocodingUrl = (query) =>
@@ -82,6 +85,22 @@ function assignElements() {
 function updateState(updates) {
   Object.assign(state, updates);
   render();
+}
+
+function beginRequest(existingRequestId) {
+  if (typeof existingRequestId === 'number') {
+    return existingRequestId;
+  }
+
+  const newRequestId = ++requestCounter;
+  latestRequestId = newRequestId;
+  return newRequestId;
+}
+
+function updateStateIfActive(requestId, updates) {
+  if (requestId === latestRequestId) {
+    updateState(updates);
+  }
 }
 
 function render() {
@@ -127,12 +146,15 @@ function render() {
 }
 
 async function fetchWeatherForCoords(latitude, longitude, label, options = {}) {
-  const { preserveError = false } = options;
+  const { preserveError = false, requestId: providedRequestId } = options;
+  const requestId = beginRequest(providedRequestId);
+  const updateIfActive = (updates) => updateStateIfActive(requestId, updates);
+
   const initialUpdates = { loading: true };
   if (!preserveError) {
     initialUpdates.error = '';
   }
-  updateState(initialUpdates);
+  updateIfActive(initialUpdates);
 
   try {
     const response = await fetch(buildWeatherUrl(latitude, longitude));
@@ -146,7 +168,7 @@ async function fetchWeatherForCoords(latitude, longitude, label, options = {}) {
       throw new Error('Weather data is unavailable for this location.');
     }
 
-    updateState({
+    updateIfActive({
       weather: {
         temperature: current.temperature,
         windspeed: current.windspeed,
@@ -160,24 +182,27 @@ async function fetchWeatherForCoords(latitude, longitude, label, options = {}) {
 
     return true;
   } catch (error) {
-    updateState({
+    updateIfActive({
       error: formatError(error.message),
       weather: null,
       locationLabel: '',
     });
     return false;
   } finally {
-    updateState({ loading: false });
+    updateIfActive({ loading: false });
   }
 }
 
 async function fetchWeatherForCity(city, options = {}) {
   const { preserveError = false } = options;
+  const requestId = beginRequest();
+  const updateIfActive = (updates) => updateStateIfActive(requestId, updates);
+
   const initialUpdates = { loading: true };
   if (!preserveError) {
     initialUpdates.error = '';
   }
-  updateState(initialUpdates);
+  updateIfActive(initialUpdates);
 
   try {
     const response = await fetch(buildGeocodingUrl(city));
@@ -191,9 +216,15 @@ async function fetchWeatherForCity(city, options = {}) {
       throw new Error('No matching city found.');
     }
 
-    const success = await fetchWeatherForCoords(result.latitude, result.longitude, result.name, {
-      preserveError,
-    });
+    const success = await fetchWeatherForCoords(
+      result.latitude,
+      result.longitude,
+      result.name,
+      {
+        preserveError,
+        requestId,
+      },
+    );
 
     if (!success) {
       return false;
@@ -201,7 +232,7 @@ async function fetchWeatherForCity(city, options = {}) {
 
     return true;
   } catch (error) {
-    updateState({
+    updateIfActive({
       error: formatError(error.message),
       weather: null,
       loading: false,
