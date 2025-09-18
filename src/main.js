@@ -50,11 +50,17 @@ const buildGeocodingUrl = (query) =>
 const buildWeatherUrl = (latitude, longitude) =>
   `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current_weather=true`;
 
-const formatTime = (timeString) => {
-  const formatter = new Intl.DateTimeFormat(undefined, {
+const formatTime = (timeString, timeZone) => {
+  const options = {
     dateStyle: 'medium',
     timeStyle: 'short',
-  });
+  };
+
+  if (timeZone) {
+    options.timeZone = timeZone;
+  }
+
+  const formatter = new Intl.DateTimeFormat(undefined, options);
 
   return formatter.format(new Date(timeString));
 };
@@ -106,12 +112,12 @@ function render() {
   }
 
   if (weather) {
-    const { temperature, windspeed, weathercode, time } = weather;
+    const { temperature, windspeed, weathercode, time, timezone } = weather;
     const description = weatherCodeDescription[weathercode] ?? 'Unknown conditions';
 
     elements.card.hidden = false;
     elements.cardLocation.textContent = locationLabel;
-    elements.cardUpdated.textContent = `Updated ${formatTime(time)}`;
+    elements.cardUpdated.textContent = `Updated ${formatTime(time, timezone)}`;
     elements.cardTemperatureValue.textContent = temperature.toFixed(1);
     elements.cardDescription.textContent = description;
     elements.cardWind.textContent = `Wind: ${windspeed.toFixed(1)} km/h`;
@@ -146,6 +152,8 @@ async function fetchWeatherForCoords(latitude, longitude, label, options = {}) {
         windspeed: current.windspeed,
         weathercode: current.weathercode,
         time: current.time,
+        timezone: data?.timezone ?? null,
+        utcOffsetSeconds: data?.utc_offset_seconds ?? null,
       },
       locationLabel: label,
     });
