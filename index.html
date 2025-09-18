@@ -4,9 +4,55 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Weather App</title>
+    <link rel="stylesheet" href="./src/App.css" />
   </head>
   <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
+    <div class="app">
+      <header class="app__header">
+        <h1>Weather App</h1>
+        <p>Check the latest weather using your location or a city search.</p>
+      </header>
+
+      <form class="app__form" data-element="form">
+        <input
+          aria-label="City name"
+          class="app__input"
+          data-element="input"
+          placeholder="Search for a city"
+          type="search"
+          autocomplete="off"
+          required
+        />
+        <button class="app__button" type="submit" data-element="button">Search</button>
+      </form>
+
+      <p class="app__error" role="alert" data-element="error" hidden></p>
+
+      <section
+        class="weather-card"
+        aria-live="polite"
+        data-element="weather-card"
+        hidden
+      >
+        <h2 class="weather-card__location" data-element="weather-location"></h2>
+        <p class="weather-card__updated" data-element="weather-updated"></p>
+        <div class="weather-card__details">
+          <div class="weather-card__temperature">
+            <span class="weather-card__value" data-element="weather-temperature"></span>
+            <span class="weather-card__unit">°C</span>
+          </div>
+          <div class="weather-card__meta">
+            <p data-element="weather-description"></p>
+            <p data-element="weather-wind"></p>
+          </div>
+        </div>
+      </section>
+
+      <p class="app__placeholder" data-element="placeholder">
+        Enter a city to see the current weather.
+      </p>
+    </div>
+
+    <script type="module" src="./src/main.js"></script>
   </body>
 </html>
